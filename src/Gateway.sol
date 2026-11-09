@@ -585,11 +585,28 @@ contract GatewayUpgradeable is BitvmPolicy, Initializable, IGateway {
         bytes32 challengeFinishTxid;
         address disproverAddress;
         if (disproveTxType == DisproveTxType.Disprove) {
-            (challengeFinishTxid) = BitvmTxParser._computeTxid(rawChallengeFinishTx);
-            if (graphData.disproveTxids.length <= txnIndex) {
+            // Disprove-X is pre-signed with SIGHASH_NONE, so its outputs (the
+            // disprover's OP_RETURN among them) are free: identify it by the two
+            // outpoints its signatures commit to instead of by its txid.
+            uint256 verifierCount = graphData.verifierAssertTxids.length;
+            if (verifierCount <= txnIndex) {
                 revert IndexOutOfRange();
             }
-            if (challengeFinishTxid != graphData.disproveTxids[txnIndex]) {
+            bytes32 assertTxid;
+            uint32 connectorDVout;
+            (challengeFinishTxid, assertTxid, connectorDVout, disproverAddress) =
+                BitvmTxParser._parseDisproveTx(rawChallengeFinishTx);
+            // OperatorAssert outputs are one connector per verifier, then connector-D.
+            // forge-lint: disable-next-line(unsafe-typecast)
+            if (assertTxid != graphData.proverAssertTxid || connectorDVout != uint32(verifierCount)) {
+                revert TxidMismatch();
+            }
+            (bytes32 verifierAssertTxid, uint32 proverConnectorVout) =
+                BitvmTxParser._parseInputOutpoint(rawChallengeFinishTx, 0);
+            if (
+                verifierAssertTxid != graphData.verifierAssertTxids[txnIndex]
+                    || proverConnectorVout != BitvmTxParser.VERIFIER_ASSERT_PROVER_CONNECTOR_VOUT
+            ) {
                 revert TxidMismatch();
             }
         } else if (disproveTxType == DisproveTxType.QuickChallenge) {
@@ -613,7 +630,7 @@ contract GatewayUpgradeable is BitvmPolicy, Initializable, IGateway {
             }
             if (
                 !BitvmTxParser._hasInputOutpoint(
-                    rawChallengeFinishTx, graphData.proverAssertTxid, uint32(graphData.disproveTxids.length)
+                    rawChallengeFinishTx, graphData.proverAssertTxid, uint32(graphData.verifierAssertTxids.length)
                 )
             ) {
                 revert TxidMismatch();
