@@ -421,6 +421,10 @@ contract GatewayUpgradeable is BitvmPolicy, Initializable, IGateway {
         // store graph data
         graphDataMap[graphId] = graphData;
         instanceIdToGraphIds[instanceId].push(graphId);
+        // A graph can be disproved without initWithdraw ever running; record its
+        // instance now so the WithdrawDisproved event names it. initWithdraw later
+        // writes the same value, as the peg-in txid ties the graph to this instance.
+        withdrawDataMap[graphId].instanceId = instanceId;
 
         emit PostGraphData(instanceId, graphId);
     }

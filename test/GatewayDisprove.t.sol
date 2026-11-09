@@ -220,7 +220,7 @@ contract GatewayDisproveTest is Test {
         postGraph();
         BitvmTxParser.BitcoinTx memory finish = disprove(1);
         Settlement memory s = settlement(1, finish);
-        vm.expectEmit(false, true, false, true);
+        vm.expectEmit(true, true, false, true);
         emit IGateway.WithdrawDisproved(
             INSTANCE_ID,
             GRAPH_ID,
@@ -279,5 +279,12 @@ contract GatewayDisproveTest is Test {
         Settlement memory s = settlement(VERIFIERS, disprove(1));
         vm.expectRevert(IGateway.IndexOutOfRange.selector);
         finishDisprove(s);
+    }
+
+    function test_postGraphDataRecordsTheInstanceForADisproveWithoutInitWithdraw() public {
+        postGraph();
+        (IGateway.WithdrawStatus status,,, bytes16 instanceId,,) = gateway.withdrawDataMap(GRAPH_ID);
+        assertEq(uint8(status), uint8(IGateway.WithdrawStatus.None));
+        assertEq(instanceId, INSTANCE_ID);
     }
 }
