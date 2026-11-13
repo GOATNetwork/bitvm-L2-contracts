@@ -122,7 +122,9 @@ interface IGateway {
         bytes32 take2Txid;
         bytes32 watchtowerChallengeInitTxid;
         bytes32 proverAssertTxid;
-        bytes32[] disproveTxids;
+        // ChallengeAssert txid of each verifier, in verifier order; a Disprove
+        // spends output 0 of one of them together with the operator's connector-D.
+        bytes32[] verifierAssertTxids;
         bytes32[] watchtowerChallengeTimeoutTxids;
         bytes32[] operatorChallengeNackTxids;
         bytes32 operatorCommitTimeoutTxid;
